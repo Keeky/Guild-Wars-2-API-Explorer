@@ -1,0 +1,363 @@
+{
+	"v2-account": {
+		"name": "account",
+		"bubbles": ["v2", "key"],
+		"description" : "This resource returns information about player accounts. This endpoint is only accessible with a valid API key.",
+		"baseUrl": "https://api.guildwars2.com/v2/account",
+		"requestData": [
+			["Auth"]
+		],
+		"responseData": [
+			["id", "string", "The unique persistent account GUID."],
+			["name", "string", "The unique account name with numerical suffix. It is possible that the name change. Do not rely on the name, use id instead."],
+			["world", "string", "The id of the home world the account is assigned to. Can be fetched by requesting /v2/worlds."],
+			["guilds", "string", "A list of guilds assigned to the given account."]
+		]
+	},
+	"v2-characters": {
+		"name": "characters",
+		"bubbles": ["v2", "key"],
+		"description": "This resource returns information about characters attached to a specific account. This endpoint is only accessible with a valid API key.<br><br>If the endpoint is accessed without any parameters <code>/v2/characters</code>, it will return an array of characters by name.<br>Characters can be requested specifically via the <code>ids</code> parameter, or by specifying them in the next URI component. (e.g. <code>/v2/characters/MyCharacter</code>)<br>To retrieve all the characters on an account, pagination can be used. (<code>/v2/characters?page=0</code>)",
+		"baseUrl": "https://api.guildwars2.com/v2/characters",
+		"requestData": [
+			["Auth"],
+			[true, "get", "ids", "string", "No", "Optional parameter to get details about specific characters."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["name", "string", "The character's name. <span class=\"smalltext\">Name changes are a thing</span>."],
+			["race", "string", "The character's race. Either <code>Asura</code>, <code>Charr</code>, <code>Human</code>, <code>Norn</code> or <code>Sylvari</code>."],
+			["gender", "string", "The character's gender. Either <code>Male</code> or <code>Female</code>."],
+			["profession", "string", "The character's profession. Either <code>Elementalist</code>, <code>Engineer</code>, <code>Guardian</code>, <code>Mesmer</code>, <code>Necromancer</code>, <code>Ranger</code>, <code>Thief</code> or<code>Warrior</code>."],
+			["level", "int", "The character's level."],
+			["guild", "string", "The guild ID of the character's currently represented guild. Only shown if the character actually represents a guild."]
+		]
+	},
+	"v2-commerce-transactions": {
+		"name": "commerce/transactions",
+		"bubbles": ["v2", "key"],
+		"description": "This resource provides access to the current and historical transactions of a player. This endpoint is only accessible with a valid API key. Results are cached for five minutes.",
+		"baseUrl": "https://api.guildwars2.com/v2/commerce/transactions",
+		"specialInterfaces": "<select class=\"level-2-endpoint reset\"><option>---choose one---</option><option>current</option><option>history</option></select><select class=\"level-3-endpoint reset\"><option>---choose one---</option><option>buys</option><option>sells</option></select>",
+		"requestData": [
+			["Auth"]
+		],
+		"responseData": [
+			["id", "int", "Id of the transaction."],
+			["item_id", "int", "The item id."],
+			["price", "int", "The price in coins."],
+			["quantity", "int", "The quantity of the item."],
+			["created", "string", "The date of creation, using ISO-8601 standard."],
+			["purchased", "string", "The date of purchase, using ISO-8601 standard. Not shown in <code>current</code> second-level endpoint."]
+		]
+	},
+	"v2-tokeninfo": {
+		"name": "tokeninfo",
+		"bubbles": ["v2", "key"],
+		"description": "This resource returns information about the supplied API key. This endpoint is only accessible with a valid API key.",
+		"baseUrl": "https://api.guildwars2.com/v2/tokeninfo",
+		"requestData": [
+			["Auth"]
+		],
+		"responseData": [
+			["id", "int", "The API key that was requested."],
+			["name", "string", "The name that was given to the API key when it was created."],
+			["permissions", "array", "Array of strings describing which permissions the API key has. Currently the array can contain any of <code>account</code>, <code>characters</code> and <code>tradingpost</code>"]
+		]
+	},
+	"v1-guild_details": {
+		"name": "guild_details",
+		"bubbles": ["v1"],
+		"description": "This resource returns a details about a guild. Note: Only one request parameter is required; if both are set, the guild id takes precedence.",
+		"baseUrl": "https://api.guildwars2.com/v1/guild_details",
+		"requestData": [
+			[true, "get", "guild_id", "string", "Yes", "The guild id to query for."],
+			[true, "get", "guild_name", "string", "Yes", "The guild name to query for."]
+		],
+		"responseData": [
+			["guild_id", "string", "The guild id."],
+			["guild_name", "string", "The guild name."],
+			["tag", "string", "The guild tag."],
+			["emblem", "object", "If present, it holds detailed information about the guilds emblem."]
+		]
+	},
+	"v1-wvw-matches": {
+		"name": "wvw/matches",
+		"bubbles": ["v1"],
+		"description": "This resource returns a list of the currently running WvW matches, with the participating worlds included in the result. Further details about a match can be requested using the match_details resource.",
+		"baseUrl": "https://api.guildwars2.com/v1/wvw/matches",
+		"responseData": [
+			["wvw_match_id", "string", "The WvW match id."],
+			["red_world_id", "int", "The world id of the red world."],
+			["blue_world_id", "int", "The world id of the blue world."],
+			["green_world_id", "int", "The world id of the green world."],
+			["start_time", "string", "A timestamp of when the match started."],
+			["end_time", "string", "A timestamp of when the match ends."]
+		]
+	},
+	"v1-wvw-match_details": {
+		"name": "wvw/match_details",
+		"bubbles": ["v1"],
+		"description": "This resource returns further details about the specified match, including the total score and further details for each map.",
+		"baseUrl": "https://api.guildwars2.com/v1/wvw/match_details",
+		"requestData": [
+			[true, "get", "match_id", "string", "Yes", "The WvW match to query for."]
+		],
+		"responseData": [
+			["match_id", "string", "The guild id."],
+			["scores", "array", "A list of the three total scores (order: red, blue, green)."],
+			["maps", "array", "A list of objects containing detailed information about each of the four maps."]
+		]
+	},
+	"v1-wvw-objective_names": {
+		"name": "wvw/objective_names",
+		"bubbles": ["v1"],
+		"description": "This resource returns an unordered list of the localized WvW objective names for the specified language.",
+		"baseUrl": "https://api.guildwars2.com/v1/wvw/objective_names",
+		"requestData": [
+			[true, "get", "lang", "string", "No", "The WvW match to query for."]
+		],
+		"responseData": [
+			["id", "string", "The objective id."],
+			["name", "array", "The name of the objective in the specified language. Note that this is not the name displayed in the game, but rather the abstract type."]
+		]
+	},
+	"v2-items": {
+		"name": "items",
+		"bubbles": ["v2"],
+		"description": "This resource returns information about items that were discovered by players in the game. Note that the response varies depending on the type of item you're requesting.",
+		"baseUrl": "https://api.guildwars2.com/v2/items",
+		"requestData": [
+			[true, "get", "lang", "string", "No", "Request localized information."],
+			[true, "get", "ids", "string", "No", "Items to request via its ID. Seperate multiple with a comma."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["id", "int", "The item id."],
+			["name", "string", "The item name."],
+			["icon", "string", "The full icon URL."],
+			["description", "string", "The item description."],
+			["type", "string", "The item type."],
+			["rarity", "string", "The item rarity."],
+			["level", "int", "The required level."],
+			["vendor_value", "int", "The value in coins when selling to a vendor. (Can be non-zero even when the item has the NoSell flag.)"],
+			["default_skin", "int", "The default skin id."],
+			["flags", "array", "Flags applying to the item."],
+			["game_types", "array", "The game types in which the item is usable. At least one game type is specified."],
+			["restrictions", "array", "Restrictions applied to the item."],
+			["details", "object", "Additional item details if applicable, depending on the item type."]
+		]
+	},
+	"v2-recipes": {
+		"name": "recipes",
+		"bubbles": ["v2"],
+		"description": "This resource returns information about recipes that were discovered by players in the game. Note that the response varies depending on the type of item you're requesting.",
+		"baseUrl": "https://api.guildwars2.com/v2/items",
+		"requestData": [
+			[true, "get", "lang", "string", "No", "Request localized information."],
+			[true, "get", "ids", "string", "No", "Items to request via its ID. Seperate multiple with a comma."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["id", "int", "The recipe id."],
+			["type", "string", "The recipe type."],
+			["output_item_id", "int", "The item id of the produced item."],
+			["output_item_count", "int", "The amount of items produced."],
+			["time_to_craft_ms", "int", "The time in milliseconds it takes to craft the item."],
+			["disciplines", "array", "The crafting disciplines that can use the recipe."],
+			["min_rating", "int", "The required rating to craft the recipe."],
+			["flags", "array", "Flags applying to the recipe."],
+			["ingredients", "array", "List of recipe ingredients."]
+		]
+	},
+	"v2-recipes-search": {
+		"name": "recipes/search",
+		"bubbles": ["v2"],
+		"description": "This resource allows searching for recipe. To get additional information about the returned recipes, use the recipes endpoint. Input and output request parameters can't be used together.",
+		"baseUrl": "https://api.guildwars2.com/v2/recipes/search",
+		"requestData": [
+			[true, "get", "input", "int", "No", "The item id when searching for recipes with an item as an ingredient."],
+			[true, "get", "output", "int", "No", "The item id when searching for the recipes that craft an item."]
+		],
+		"responseData": [
+			["None", "array", "An array of item ids."]
+		]
+	},
+	"v2-skins": {
+		"name": "skins",
+		"bubbles": ["v2"],
+		"description": "This resource returns information about skins that were discovered by players in the game.",
+		"baseUrl": "https://api.guildwars2.com/v2/skins",
+		"requestData": [
+			[true, "get", "ids", "string", "No", "Skins to request via its ID. Seperate multiple with a comma."],
+			[true, "get", "lang", "string", "No", "Request localized information."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["id", "int", "An array of item ids."],
+			["name", "string", "The name of the skin."],
+			["type", "string", "The skin type. Either <code>Armor</code>, <code>Weapon</code> or <code>Back</code>"],
+			["flags", "array", "Additional skin flags."],
+			["restrictions", "array", "Race restrictions that apply to the skin, e.g. <code>Human</code> will be a listed restriction, if the skin can only be applies to human characters."],
+			["icon", "string", "The full icon URL."],
+			["description", "string", "Optional skin description."],
+			["details", "object", "Additional skin details if applicable, depending on the skin type."]
+		]
+	},
+	"v2-continents": {
+		"name": "continents",
+		"bubbles": ["v2"],
+		"description": "This resource returns static information about the continents, floors, regions, maps, sectors, points of interest and tasks.",
+		"baseUrl": "https://api.guildwars2.com/v2/continents",
+		"specialInterfaces": "<p>Controls for this endpoint are still under construction.</p>",
+		"requestData": [
+			[true, "get", "lang", "string", "No", "Request localized information."]
+		],
+		"responseData": [
+			["id", "int", "The id of the continent."],
+			["name", "string", "The name of the continent."],
+			["continent_dims", "array", "The width and height dimensions of the continent"],
+			["min_zoom", "int", "The minimal zoom level for use with the map tile service."],
+			["max_zoom", "int", "The maximum zoom level for use with the map tile service."],
+			["floors", "array", "A list of floors available for this continent."]
+		]
+	},
+	"v2-maps": {
+		"name": "maps",
+		"bubbles": ["v2"],
+		"description": "This resource returns details about maps in the game, including details about floor and translation data on how to translate between world coordinates and map coordinates.",
+		"baseUrl": "https://api.guildwars2.com/v2/maps",
+		"specialInterfaces": "<p>Controls for this endpoint are still under construction.</p>",
+		"requestData": [
+			[true, "get", "lang", "string", "No", "Request localized information."]
+		],
+		"responseData": [
+			["id", "int", "The map id."],
+			["name", "string", "The map name."],
+			["min_level", "int", "The minimal level of this map."],
+			["max_level", "int", "The maximum level of this map."],
+			["default_floor", "int", "The default floor of this map."],
+			["floors", "array", "A list of available floors for this map."],
+			["region_id", "int", "The id of the region this map belongs to."],
+			["region_name", "string", "The name of the region this map belongs to."],
+			["continent_id", "int", "The id of the continent this map belongs to."],
+			["continent_name", "string", "The name of the continent this map belongs to."],
+			["map_rect", "array", "The dimensions of the map, given as the coordinates of the lower-left (SW) and upper-right (NE) corners."],
+			["continent_rect", "array", "The dimensions of the map within the continent coordinate system, given as the coordinates of the upper-left (NW) and lower-right (SE) corners."]
+		]
+	},
+	"v2-commerce-listings": {
+		"name": "commerce/listings",
+		"bubbles": ["v2"],
+		"description": "This resource returns current buy and sell listings from the trading post.",
+		"baseUrl": "https://api.guildwars2.com/v2/commerce/listings",
+		"requestData": [
+			[true, "get", "ids", "string", "No", "Dyes to request via its ID. Seperate multiple with a comma."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["id", "int", "The item id."],
+			["buys", "array", "A list of all buy listings, ascending from lowest buy order."],
+			["sells", "array", "A list of all sell listings, ascending from lowest sell offer."]
+		]
+	},
+	"v2-commerce-exchange": {
+		"name": "commerce/exchange",
+		"bubbles": ["v2"],
+		"description": "This resource returns a list of accepted resources for the gem exchange.",
+		"baseUrl": "https://api.guildwars2.com/v2/commerce/exchange",
+		"specialInterfaces": "<select class=\"level-2-endpoint reset\"><option>---choose one---</option><option>coins</option><option>gems</option></select>",
+		"requestData": [
+			[true, "get", "quantity", "int", "Yes", "The amount to exchange."]
+		],
+		"responseData": [
+			["coins_per_gem", "int", "Depending on the 2nd level endpoint either the number of coins you get per gem (<code>/commerce/exchange/gems</code>) or the number of coins you need for one gem (<code>/commerce/exchange/coins</code>)."],
+			["quantity", "int", "The number of coins or gems you get for the specified quantity."]
+		]
+	},
+	"v2-commerce-prices": {
+		"name": "commerce/prices",
+		"bubbles": ["v2"],
+		"description": "This resource returns a list of accepted resources for the gem exchange.",
+		"baseUrl": "https://api.guildwars2.com/v2/commerce/prices",
+		"requestData": [
+			[true, "get", "ids", "string", "No", "Listings to request via its ID. Seperate multiple with a comma."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["id", "int", "The item id."],
+			["buys", "object", "Buy information."],
+			["sells", "object", "Sell information."]
+		]
+	},
+	"v2-build": {
+		"name": "build",
+		"bubbles": ["v2"],
+		"description": "This resource returns the current build id of the game. This can be used, for example, to register when event timers reset due to server restarts.",
+		"baseUrl": "https://api.guildwars2.com/v2/build",
+		"responseData": [
+			["id", "int", "The build id."]
+		]
+	},
+	"v2-colors": {
+		"name": "colors",
+		"bubbles": ["v2"],
+		"description": "This resource returns all dye colors in the game, including localized names and their color component information.",
+		"baseUrl": "https://api.guildwars2.com/v2/colors",
+		"requestData": [
+			[true, "get", "ids", "string", "No", "Dyes to request via its ID. Seperate multiple with a comma."],
+			[true, "get", "lang", "string", "No", "The language to query the names for."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["id", "int", "The color id."],
+			["name", "string", "The color name."],
+			["base_rgb", "array", "The base RGB values."],
+			["cloth", "object", "Detailed information on its appearance when applied on cloth armor."],
+			["leather", "object", "Detailed information on its appearance when applied on leather armor."],
+			["metal", "object", "Detailed information on its appearance when applied on metal armor."]
+		]
+	},
+	"v2-files": {
+		"name": "files",
+		"bubbles": ["v2"],
+		"description": "This resource returns commonly requested in-game assets that may be used to enhance API-derived applications.",
+		"baseUrl": "https://api.guildwars2.com/v2/files",
+		"requestData": [
+			[true, "get", "ids", "string", "No", "Dyes to request via its ID. Seperate multiple with a comma."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["id", "string", "The file identifier."],
+			["icon", "string", "The URL to the image."]
+		]
+	},
+	"v2-quaggans": {
+		"name": "quaggans",
+		"bubbles": ["v2"],
+		"description": "This resource returns quaggan images.",
+		"baseUrl": "https://api.guildwars2.com/v2/quaggans",
+		"requestData": [
+			[true, "get", "ids", "string", "No", "The quaggan identifier."]
+		],
+		"responseData": [
+			["id", "int", "The quaggan identifier."],
+			["url", "string", "The URL to the quaggan image."]
+		]
+	},
+	"v2-worlds": {
+		"name": "worlds",
+		"bubbles": ["v2"],
+		"description": "This resource returns information about the available worlds, or servers.",
+		"baseUrl": "https://api.guildwars2.com/v2/worlds",
+		"requestData": [
+			[true, "get", "ids", "string", "No", "Worlds to request via its ID. Seperate multiple with a comma."],
+			[true, "get", "lang", "string", "No", "The language to query the names for."],
+			[true, "get", "page", "int", "No", "Pagination."]
+		],
+		"responseData": [
+			["id", "int", "The world id."],
+			["name", "string", "The world name."]
+		]
+	}
+}
