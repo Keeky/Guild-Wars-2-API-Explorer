@@ -1,0 +1,2015 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<title>Guild Wars 2 API Explorer</title>
+		<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+		<link href='http://fonts.googleapis.com/css?family=Roboto:400,500,600,700,400italic' rel='stylesheet' type='text/css'>
+		<link href='http://fonts.googleapis.com/css?family=Roboto+Mono' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" href="style.css">
+		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function(e) {
+				$('body').removeClass('js-off').addClass('js-on');
+				$('.js-only').show();
+				$('.no-js').hide();
+
+				var specials = {};
+
+				function smoothScroll (elemId) {
+					var elemId = elemId.replace(/\//g,'-');
+					var $target = $(elemId);
+					$target = $target.length && $target || $('[name=' + elemId +']');
+					if ($target.length) {
+						var targetOffset = $target.offset().top;
+						$('html,body').animate({scrollTop: targetOffset - 30}, 500);
+						return true;
+					}
+				}
+
+				function checkApiKey (apiKey, elem) {
+					var result = false;
+					if(elem)
+						elem.addClass('loading');
+					return $.getJSON('https://api.guildwars2.com/v2/tokeninfo?access_token=' + apiKey);
+				}
+
+				function validateApiInput() {
+					var elem = $('#api-key');
+					if(elem.val()) {
+						var apiKeyTest = checkApiKey(elem.val(), elem);
+						apiKeyTest.always(function(data) {
+							$('#api-key').removeClass('loading');
+							if(data.id) {
+								$('#api-key').removeClass('invalid').addClass('valid');
+								updateUrl('access_token', elem.val());
+							} else
+								$('#api-key').removeClass('valid').addClass('invalid');
+						})
+					} else
+						$('#api-key').removeClass('valid invalid loading');
+				}
+
+				function syntaxHighlight(json) {
+					if (typeof json != 'string') {
+						 json = JSON.stringify(json, undefined, 2);
+					}
+					json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+					return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+						var cls = 'number';
+						if (/^"/.test(match)) {
+							if (/:$/.test(match)) {
+								cls = 'key';
+							} else {
+								cls = 'string';
+							}
+						} else if (/true|false/.test(match)) {
+							cls = 'boolean';
+						} else if (/null/.test(match)) {
+							cls = 'null';
+						}
+						return '<span class="' + cls + '">' + match + '</span>';
+					});
+				}
+
+				function updateUrl(key, value, endpoint) {
+					if(endpoint)
+						var scope = endpoint;
+					else
+						var scope = document;
+					if(key && value) {
+						var change = $('.query-url .api--' + key, scope).length ? $('.api--' + key, scope).html(value) : $('<span class="api--' + key + '">' + key + '=' + value + '<span class="and">&</span></span>').appendTo('.query-url');
+					}
+				}
+
+				function requestNewData(elem) {
+					var parent = elem.closest('.api-box');
+					var urlElem = $('.api-url', parent);
+					var apiUrl = {
+						queryElem: $('.query-url', urlElem),
+						base: $('.base-url', urlElem).text(),
+						query: $('.query-url', urlElem).text()
+					};
+
+					$('.api-call-result', parent).addClass('loading');
+
+					if(specials[parent.attr('id')]) {
+						if(specials[parent.attr('id')].prepend) {
+							var prependString = '';
+							$.each(specials[parent.attr('id')].prepend, function(key, value) {
+								if(value)
+									prependString += '/' + value;
+							})
+							apiUrl.base += prependString;
+							$('.prependix', urlElem).text(prependString);
+
+						}
+					}
+
+					var apiKey = ($('#api-key').hasClass('valid')) ? apiKey = $('#api-key').val() : apiKey = '[API-Key]';
+
+					apiUrl.queryElem.html('?<span class="api--access_token">access_token=' + apiKey + '<span class="and">&</span></span>');
+
+					var queryConstruct = {};
+
+					$('.request-table tbody tr', parent).each(function() {
+						var current = $(this);
+						var endpoint = current.closest('.api-box');
+						var method = $('.method', current).text();
+						var name = $('.name', current).text();
+						var value = $('.value .sandbox-input', current).val();
+
+						updateUrl(name, value, endpoint);
+					})
+
+					apiUrl.query = apiUrl.queryElem.text();
+
+					if(parent.hasClass('sandbox')) {
+						(function(p) {
+							$.getJSON(apiUrl.base + apiUrl.query).done(function(data) {
+								$('.api-call-result', p).removeClass('loading').html(syntaxHighlight(JSON.stringify(data, undefined, 2)));
+							}).error(function(data) {
+								console.log(data);
+								$('.api-call-result', p).removeClass('loading').html(syntaxHighlight(JSON.stringify(data.responseJSON, undefined, 2)));
+							});
+						})(parent);
+					}
+				}
+
+				$('.level-2-endpoint option').click(function() {
+					value = $(this).val();
+					endpoint = $(this).closest('.api-box')
+					if(value != '---choose one---') {
+						if(!specials[endpoint.attr('id')])
+							specials[endpoint.attr('id')] = {prepend: {}};
+						$('.level-3-endpoint', endpoint).show();
+						specials[endpoint.attr('id')].prepend.level2 = value;
+					} else {
+						$('.level-3-endpoint').hide()
+						specials[endpoint.attr('id')].prepend.level2 = '';
+						specials[endpoint.attr('id')].prepend.level3 = '';
+					}
+
+					requestNewData($(this).closest('.api-box'));
+				})
+
+				$('.level-3-endpoint option').click(function() {
+					value = $(this).val();
+					if(value != '---choose one---') {
+						specials[$(this).closest('.api-box').attr('id')].prepend.level3 = value;
+					} else {
+						specials[$(this).closest('.api-box').attr('id')].prepend.level3 = undefined;
+					}
+
+					requestNewData($(this).closest('.api-box'));
+				})
+
+				$('select.reset').val('---choose one---');
+				
+				$('a[href*=#]').click(function(e) {
+					e.preventDefault();
+					var elemId = this.hash;
+					if (location.pathname.replace(/^\//,'') == this.pathname.replace(/^\//,'') && location.hostname == this.hostname) {
+						smoothScroll(elemId);
+						document.location.hash = elemId.replace(/\-/g,'/');
+					}
+				});
+
+				$('#api-key').change(function() {
+					validateApiInput();
+				});
+
+				$('.try-out').click(function() {
+					$(this).parent().toggleClass('sandbox');
+					($(this).text() === 'Use this endpoint') ? $(this).text('Cancel') : $(this).text('Use this endpoint');
+
+					if($(this).parent().hasClass('sandbox'))
+						requestNewData($(this));
+				})
+
+				$('.sandbox-input').change(function() {
+					requestNewData($(this));
+				})
+
+				$('#api-key').val(localStorage.getItem('apiKey'));
+
+				if(document.location.hash) {
+					smoothScroll(document.location.hash);
+				}
+
+				validateApiInput();
+			});
+		</script>
+	</head>
+	<body class="js-off">
+		<div id="sidebar">
+			<h1>GW2 API Explorer</h1>
+			<div id="api-list">
+				<span class="label">Authenticated</span>
+				<a href="#v2-account">account</a>
+				<a href="#v2-characters">characters</a>
+				<a href="#v2-commerce-transactions">commerce/transactions</a>
+				<a href="#v2-tokeninfo">tokeninfo</a>
+				<span class="label">Guilds</span>
+				<a href="#v1-guild_details">guild_details</a>
+				<span class="label">World vs. World</span>
+				<a href="#v1-wvw-matches">wvw/matches</a>
+				<a href="#v1-wvw-match_details">wvw/match_details</a>
+				<a href="#v1-wvw-objective_names">wvw/objective_names</a>
+				<span class="label">Items</span>
+				<a href="#v2-items">items</a>
+				<a href="#v2-recipes">recipes</a>
+				<a href="#v2-recipes/search">recipes/search</a>
+				<a href="#v2-skins">skins</a>
+				<span class="label">Map information</span>
+				<a href="#v2-continents">continents</a>
+				<a href="#v2-maps">maps</a>
+				<span class="label">Trading post</span>
+				<a href="#v2-commerce/listings">commerce/listings</a>
+				<a href="#v2-commerce/exchange">commerce/exchange</a>
+				<a href="#v2-commerce/prices">commerce/prices</a>
+				<span class="label">Miscellaneous</span>
+				<a href="#v2-build">build</a>
+				<a href="#v2-colors">colors</a>
+				<a href="#v2-files">files</a>
+				<a href="#v2-quaggans">quaggans</a>
+				<a href="#v2-worlds">worlds</a>
+			</div>
+		</div>
+		<div id="content">
+			<div id="content-inner">
+				<div class="label">Your API Key</div>
+				<div id="api-key-form-wrapper">
+					<input id="api-key" name="api-key" type="text" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXXXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX">
+				</div>
+				<div id="first-box" class="api-box">
+					<p>The GuildWars 2 API is accessed by making requests to <code class="highlight">https://api.guildwars2.com</code> with the following URI format:<br>
+					<code class="highlight">https://api.guildwars2.com/&lt;version&gt;/&lt;endpoint&gt;</code><br><br>This site is kind of both, a documentation and a sandbox. You can  play around a bit by clicking the "Use this endpoint" button on every card on the top right. Some input fields will appear in the request table where possible.<br><br>If you want to use the authenticated APIs you can enter an API key in the box above. The key will only be stored in your Browser. Data of this site is available on <a target="_blank" href="https://github.com/Keeky/Guild-Wars-2-API-Explorer">GitHub</a>.<br>Made with <span id="heart">&#10084;</span> by Keeky.4102</p>
+				</div>
+						
+				<h1>
+					<a class="link" id="v2-account" href="#v2-account">account</a>
+					<span class="bubble v2">v2</span><span class="bubble key">Requires API Key</span>
+				</h1>
+				<div id="v2-account-data" class="api-box requires-key">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns information about player accounts. This endpoint is only accessible with a valid API key.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/account</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="auth">Auth</span></td>
+								<td>&nbsp;</td>
+								<th class="sandbox-only">&nbsp;</th>
+								<td class="type">string</td>
+								<td class="required">Yes</td>
+								<td>Default authentication. Pass the API key either via <span class="header">Header</span> <code>Authorization: Bearer &lt;API key&gt;</code> or <span class="get">GET</span> <code>access_token</code></td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">string</td>
+							<td>The unique persistent account GUID.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The unique account name with numerical suffix. It is possible that the name change. Do not rely on the name, use id instead.</td>
+						</tr>
+						<tr>
+							<td><span class="world">world</span></td>
+							<td class="type">string</td>
+							<td>The id of the home world the account is assigned to. Can be fetched by requesting /v2/worlds.</td>
+						</tr>
+						<tr>
+							<td><span class="guilds">guilds</span></td>
+							<td class="type">string</td>
+							<td>A list of guilds assigned to the given account.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-characters" href="#v2-characters">characters</a>
+					<span class="bubble v2">v2</span><span class="bubble key">Requires API Key</span>
+				</h1>
+				<div id="v2-characters-data" class="api-box requires-key">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns information about characters attached to a specific account. This endpoint is only accessible with a valid API key.<br><br>If the endpoint is accessed without any parameters <code>/v2/characters</code>, it will return an array of characters by name.<br>Characters can be requested specifically via the <code>ids</code> parameter, or by specifying them in the next URI component. (e.g. <code>/v2/characters/MyCharacter</code>)<br>To retrieve all the characters on an account, pagination can be used. (<code>/v2/characters?page=0</code>)</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/characters</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="auth">Auth</span></td>
+								<td>&nbsp;</td>
+								<th class="sandbox-only">&nbsp;</th>
+								<td class="type">string</td>
+								<td class="required">Yes</td>
+								<td>Default authentication. Pass the API key either via <span class="header">Header</span> <code>Authorization: Bearer &lt;API key&gt;</code> or <span class="get">GET</span> <code>access_token</code></td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Optional parameter to get details about specific characters.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The character's name. <span class="smalltext">Name changes are a thing</span>.</td>
+						</tr>
+						<tr>
+							<td><span class="race">race</span></td>
+							<td class="type">string</td>
+							<td>The character's race. Either <code>Asura</code>, <code>Charr</code>, <code>Human</code>, <code>Norn</code> or <code>Sylvari</code>.</td>
+						</tr>
+						<tr>
+							<td><span class="gender">gender</span></td>
+							<td class="type">string</td>
+							<td>The character's gender. Either <code>Male</code> or <code>Female</code>.</td>
+						</tr>
+						<tr>
+							<td><span class="profession">profession</span></td>
+							<td class="type">string</td>
+							<td>The character's profession. Either <code>Elementalist</code>, <code>Engineer</code>, <code>Guardian</code>, <code>Mesmer</code>, <code>Necromancer</code>, <code>Ranger</code>, <code>Thief</code> or<code>Warrior</code>.</td>
+						</tr>
+						<tr>
+							<td><span class="level">level</span></td>
+							<td class="type">int</td>
+							<td>The character's level.</td>
+						</tr>
+						<tr>
+							<td><span class="guild">guild</span></td>
+							<td class="type">string</td>
+							<td>The guild ID of the character's currently represented guild. Only shown if the character actually represents a guild.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-commerce-transactions" href="#v2-commerce-transactions">commerce/transactions</a>
+					<span class="bubble v2">v2</span><span class="bubble key">Requires API Key</span>
+				</h1>
+				<div id="v2-commerce-transactions-data" class="api-box requires-key">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource provides access to the current and historical transactions of a player. This endpoint is only accessible with a valid API key. Results are cached for five minutes.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/commerce/transactions</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						<div class="special"><select class="level-2-endpoint reset"><option>---choose one---</option><option>current</option><option>history</option></select><select class="level-3-endpoint reset"><option>---choose one---</option><option>buys</option><option>sells</option></select></div>
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="auth">Auth</span></td>
+								<td>&nbsp;</td>
+								<th class="sandbox-only">&nbsp;</th>
+								<td class="type">string</td>
+								<td class="required">Yes</td>
+								<td>Default authentication. Pass the API key either via <span class="header">Header</span> <code>Authorization: Bearer &lt;API key&gt;</code> or <span class="get">GET</span> <code>access_token</code></td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>Id of the transaction.</td>
+						</tr>
+						<tr>
+							<td><span class="item_id">item_id</span></td>
+							<td class="type">int</td>
+							<td>The item id.</td>
+						</tr>
+						<tr>
+							<td><span class="price">price</span></td>
+							<td class="type">int</td>
+							<td>The price in coins.</td>
+						</tr>
+						<tr>
+							<td><span class="quantity">quantity</span></td>
+							<td class="type">int</td>
+							<td>The quantity of the item.</td>
+						</tr>
+						<tr>
+							<td><span class="created">created</span></td>
+							<td class="type">string</td>
+							<td>The date of creation, using ISO-8601 standard.</td>
+						</tr>
+						<tr>
+							<td><span class="purchased">purchased</span></td>
+							<td class="type">string</td>
+							<td>The date of purchase, using ISO-8601 standard. Not shown in <code>current</code> second-level endpoint.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-tokeninfo" href="#v2-tokeninfo">tokeninfo</a>
+					<span class="bubble v2">v2</span><span class="bubble key">Requires API Key</span>
+				</h1>
+				<div id="v2-tokeninfo-data" class="api-box requires-key">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns information about the supplied API key. This endpoint is only accessible with a valid API key.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/tokeninfo</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="auth">Auth</span></td>
+								<td>&nbsp;</td>
+								<th class="sandbox-only">&nbsp;</th>
+								<td class="type">string</td>
+								<td class="required">Yes</td>
+								<td>Default authentication. Pass the API key either via <span class="header">Header</span> <code>Authorization: Bearer &lt;API key&gt;</code> or <span class="get">GET</span> <code>access_token</code></td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The API key that was requested.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The name that was given to the API key when it was created.</td>
+						</tr>
+						<tr>
+							<td><span class="permissions">permissions</span></td>
+							<td class="type">array</td>
+							<td>Array of strings describing which permissions the API key has. Currently the array can contain any of <code>account</code>, <code>characters</code> and <code>tradingpost</code></td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v1-guild_details" href="#v1-guild_details">guild_details</a>
+					<span class="bubble v1">v1</span>
+				</h1>
+				<div id="v1-guild_details-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns a details about a guild. Note: Only one request parameter is required; if both are set, the guild id takes precedence.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v1/guild_details</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">guild_id</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">Yes</td>
+								<td class="description">The guild id to query for.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">guild_name</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">Yes</td>
+								<td class="description">The guild name to query for.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="guild_id">guild_id</span></td>
+							<td class="type">string</td>
+							<td>The guild id.</td>
+						</tr>
+						<tr>
+							<td><span class="guild_name">guild_name</span></td>
+							<td class="type">string</td>
+							<td>The guild name.</td>
+						</tr>
+						<tr>
+							<td><span class="tag">tag</span></td>
+							<td class="type">string</td>
+							<td>The guild tag.</td>
+						</tr>
+						<tr>
+							<td><span class="emblem">emblem</span></td>
+							<td class="type">object</td>
+							<td>If present, it holds detailed information about the guilds emblem.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v1-wvw-matches" href="#v1-wvw-matches">wvw/matches</a>
+					<span class="bubble v1">v1</span>
+				</h1>
+				<div id="v1-wvw-matches-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns a list of the currently running WvW matches, with the participating worlds included in the result. Further details about a match can be requested using the match_details resource.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v1/wvw/matches</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr><td colspan="6">None</td></tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="wvw_match_id">wvw_match_id</span></td>
+							<td class="type">string</td>
+							<td>The WvW match id.</td>
+						</tr>
+						<tr>
+							<td><span class="red_world_id">red_world_id</span></td>
+							<td class="type">int</td>
+							<td>The world id of the red world.</td>
+						</tr>
+						<tr>
+							<td><span class="blue_world_id">blue_world_id</span></td>
+							<td class="type">int</td>
+							<td>The world id of the blue world.</td>
+						</tr>
+						<tr>
+							<td><span class="green_world_id">green_world_id</span></td>
+							<td class="type">int</td>
+							<td>The world id of the green world.</td>
+						</tr>
+						<tr>
+							<td><span class="start_time">start_time</span></td>
+							<td class="type">string</td>
+							<td>A timestamp of when the match started.</td>
+						</tr>
+						<tr>
+							<td><span class="end_time">end_time</span></td>
+							<td class="type">string</td>
+							<td>A timestamp of when the match ends.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v1-wvw-match_details" href="#v1-wvw-match_details">wvw/match_details</a>
+					<span class="bubble v1">v1</span>
+				</h1>
+				<div id="v1-wvw-match_details-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns further details about the specified match, including the total score and further details for each map.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v1/wvw/match_details</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">match_id</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">Yes</td>
+								<td class="description">The WvW match to query for.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="match_id">match_id</span></td>
+							<td class="type">string</td>
+							<td>The guild id.</td>
+						</tr>
+						<tr>
+							<td><span class="scores">scores</span></td>
+							<td class="type">array</td>
+							<td>A list of the three total scores (order: red, blue, green).</td>
+						</tr>
+						<tr>
+							<td><span class="maps">maps</span></td>
+							<td class="type">array</td>
+							<td>A list of objects containing detailed information about each of the four maps.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v1-wvw-objective_names" href="#v1-wvw-objective_names">wvw/objective_names</a>
+					<span class="bubble v1">v1</span>
+				</h1>
+				<div id="v1-wvw-objective_names-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns an unordered list of the localized WvW objective names for the specified language.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v1/wvw/objective_names</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">lang</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">The WvW match to query for.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">string</td>
+							<td>The objective id.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">array</td>
+							<td>The name of the objective in the specified language. Note that this is not the name displayed in the game, but rather the abstract type.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-items" href="#v2-items">items</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-items-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns information about items that were discovered by players in the game. Note that the response varies depending on the type of item you're requesting.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/items</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">lang</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Request localized information.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Items to request via its ID. Seperate multiple with a comma.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The item id.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The item name.</td>
+						</tr>
+						<tr>
+							<td><span class="icon">icon</span></td>
+							<td class="type">string</td>
+							<td>The full icon URL.</td>
+						</tr>
+						<tr>
+							<td><span class="description">description</span></td>
+							<td class="type">string</td>
+							<td>The item description.</td>
+						</tr>
+						<tr>
+							<td><span class="type">type</span></td>
+							<td class="type">string</td>
+							<td>The item type.</td>
+						</tr>
+						<tr>
+							<td><span class="rarity">rarity</span></td>
+							<td class="type">string</td>
+							<td>The item rarity.</td>
+						</tr>
+						<tr>
+							<td><span class="level">level</span></td>
+							<td class="type">int</td>
+							<td>The required level.</td>
+						</tr>
+						<tr>
+							<td><span class="vendor_value">vendor_value</span></td>
+							<td class="type">int</td>
+							<td>The value in coins when selling to a vendor. (Can be non-zero even when the item has the NoSell flag.)</td>
+						</tr>
+						<tr>
+							<td><span class="default_skin">default_skin</span></td>
+							<td class="type">int</td>
+							<td>The default skin id.</td>
+						</tr>
+						<tr>
+							<td><span class="flags">flags</span></td>
+							<td class="type">array</td>
+							<td>Flags applying to the item.</td>
+						</tr>
+						<tr>
+							<td><span class="game_types">game_types</span></td>
+							<td class="type">array</td>
+							<td>The game types in which the item is usable. At least one game type is specified.</td>
+						</tr>
+						<tr>
+							<td><span class="restrictions">restrictions</span></td>
+							<td class="type">array</td>
+							<td>Restrictions applied to the item.</td>
+						</tr>
+						<tr>
+							<td><span class="details">details</span></td>
+							<td class="type">object</td>
+							<td>Additional item details if applicable, depending on the item type.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-recipes" href="#v2-recipes">recipes</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-recipes-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns information about recipes that were discovered by players in the game. Note that the response varies depending on the type of item you're requesting.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/items</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">lang</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Request localized information.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Items to request via its ID. Seperate multiple with a comma.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The recipe id.</td>
+						</tr>
+						<tr>
+							<td><span class="type">type</span></td>
+							<td class="type">string</td>
+							<td>The recipe type.</td>
+						</tr>
+						<tr>
+							<td><span class="output_item_id">output_item_id</span></td>
+							<td class="type">int</td>
+							<td>The item id of the produced item.</td>
+						</tr>
+						<tr>
+							<td><span class="output_item_count">output_item_count</span></td>
+							<td class="type">int</td>
+							<td>The amount of items produced.</td>
+						</tr>
+						<tr>
+							<td><span class="time_to_craft_ms">time_to_craft_ms</span></td>
+							<td class="type">int</td>
+							<td>The time in milliseconds it takes to craft the item.</td>
+						</tr>
+						<tr>
+							<td><span class="disciplines">disciplines</span></td>
+							<td class="type">array</td>
+							<td>The crafting disciplines that can use the recipe.</td>
+						</tr>
+						<tr>
+							<td><span class="min_rating">min_rating</span></td>
+							<td class="type">int</td>
+							<td>The required rating to craft the recipe.</td>
+						</tr>
+						<tr>
+							<td><span class="flags">flags</span></td>
+							<td class="type">array</td>
+							<td>Flags applying to the recipe.</td>
+						</tr>
+						<tr>
+							<td><span class="ingredients">ingredients</span></td>
+							<td class="type">array</td>
+							<td>List of recipe ingredients.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-recipes-search" href="#v2-recipes-search">recipes/search</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-recipes-search-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource allows searching for recipe. To get additional information about the returned recipes, use the recipes endpoint. Input and output request parameters can't be used together.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/recipes/search</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">input</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">The item id when searching for recipes with an item as an ingredient.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">output</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">The item id when searching for the recipes that craft an item.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="None">None</span></td>
+							<td class="type">array</td>
+							<td>An array of item ids.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-skins" href="#v2-skins">skins</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-skins-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns information about skins that were discovered by players in the game.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/skins</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Skins to request via its ID. Seperate multiple with a comma.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">lang</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Request localized information.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>An array of item ids.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The name of the skin.</td>
+						</tr>
+						<tr>
+							<td><span class="type">type</span></td>
+							<td class="type">string</td>
+							<td>The skin type. Either <code>Armor</code>, <code>Weapon</code> or <code>Back</code></td>
+						</tr>
+						<tr>
+							<td><span class="flags">flags</span></td>
+							<td class="type">array</td>
+							<td>Additional skin flags.</td>
+						</tr>
+						<tr>
+							<td><span class="restrictions">restrictions</span></td>
+							<td class="type">array</td>
+							<td>Race restrictions that apply to the skin, e.g. <code>Human</code> will be a listed restriction, if the skin can only be applies to human characters.</td>
+						</tr>
+						<tr>
+							<td><span class="icon">icon</span></td>
+							<td class="type">string</td>
+							<td>The full icon URL.</td>
+						</tr>
+						<tr>
+							<td><span class="description">description</span></td>
+							<td class="type">string</td>
+							<td>Optional skin description.</td>
+						</tr>
+						<tr>
+							<td><span class="details">details</span></td>
+							<td class="type">object</td>
+							<td>Additional skin details if applicable, depending on the skin type.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-continents" href="#v2-continents">continents</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-continents-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns static information about the continents, floors, regions, maps, sectors, points of interest and tasks.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/continents</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						<div class="special"><p>Controls for this endpoint are still under construction.</p></div>
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">lang</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Request localized information.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The id of the continent.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The name of the continent.</td>
+						</tr>
+						<tr>
+							<td><span class="continent_dims">continent_dims</span></td>
+							<td class="type">array</td>
+							<td>The width and height dimensions of the continent</td>
+						</tr>
+						<tr>
+							<td><span class="min_zoom">min_zoom</span></td>
+							<td class="type">int</td>
+							<td>The minimal zoom level for use with the map tile service.</td>
+						</tr>
+						<tr>
+							<td><span class="max_zoom">max_zoom</span></td>
+							<td class="type">int</td>
+							<td>The maximum zoom level for use with the map tile service.</td>
+						</tr>
+						<tr>
+							<td><span class="floors">floors</span></td>
+							<td class="type">array</td>
+							<td>A list of floors available for this continent.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-maps" href="#v2-maps">maps</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-maps-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns details about maps in the game, including details about floor and translation data on how to translate between world coordinates and map coordinates.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/maps</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						<div class="special"><p>Controls for this endpoint are still under construction.</p></div>
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">lang</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Request localized information.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The map id.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The map name.</td>
+						</tr>
+						<tr>
+							<td><span class="min_level">min_level</span></td>
+							<td class="type">int</td>
+							<td>The minimal level of this map.</td>
+						</tr>
+						<tr>
+							<td><span class="max_level">max_level</span></td>
+							<td class="type">int</td>
+							<td>The maximum level of this map.</td>
+						</tr>
+						<tr>
+							<td><span class="default_floor">default_floor</span></td>
+							<td class="type">int</td>
+							<td>The default floor of this map.</td>
+						</tr>
+						<tr>
+							<td><span class="floors">floors</span></td>
+							<td class="type">array</td>
+							<td>A list of available floors for this map.</td>
+						</tr>
+						<tr>
+							<td><span class="region_id">region_id</span></td>
+							<td class="type">int</td>
+							<td>The id of the region this map belongs to.</td>
+						</tr>
+						<tr>
+							<td><span class="region_name">region_name</span></td>
+							<td class="type">string</td>
+							<td>The name of the region this map belongs to.</td>
+						</tr>
+						<tr>
+							<td><span class="continent_id">continent_id</span></td>
+							<td class="type">int</td>
+							<td>The id of the continent this map belongs to.</td>
+						</tr>
+						<tr>
+							<td><span class="continent_name">continent_name</span></td>
+							<td class="type">string</td>
+							<td>The name of the continent this map belongs to.</td>
+						</tr>
+						<tr>
+							<td><span class="map_rect">map_rect</span></td>
+							<td class="type">array</td>
+							<td>The dimensions of the map, given as the coordinates of the lower-left (SW) and upper-right (NE) corners.</td>
+						</tr>
+						<tr>
+							<td><span class="continent_rect">continent_rect</span></td>
+							<td class="type">array</td>
+							<td>The dimensions of the map within the continent coordinate system, given as the coordinates of the upper-left (NW) and lower-right (SE) corners.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-commerce-listings" href="#v2-commerce-listings">commerce/listings</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-commerce-listings-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns current buy and sell listings from the trading post.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/commerce/listings</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Dyes to request via its ID. Seperate multiple with a comma.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The item id.</td>
+						</tr>
+						<tr>
+							<td><span class="buys">buys</span></td>
+							<td class="type">array</td>
+							<td>A list of all buy listings, ascending from lowest buy order.</td>
+						</tr>
+						<tr>
+							<td><span class="sells">sells</span></td>
+							<td class="type">array</td>
+							<td>A list of all sell listings, ascending from lowest sell offer.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-commerce-exchange" href="#v2-commerce-exchange">commerce/exchange</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-commerce-exchange-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns a list of accepted resources for the gem exchange.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/commerce/exchange</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						<div class="special"><select class="level-2-endpoint reset"><option>---choose one---</option><option>coins</option><option>gems</option></select></div>
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">quantity</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">Yes</td>
+								<td class="description">The amount to exchange.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="coins_per_gem">coins_per_gem</span></td>
+							<td class="type">int</td>
+							<td>Depending on the 2nd level endpoint either the number of coins you get per gem (<code>/commerce/exchange/gems</code>) or the number of coins you need for one gem (<code>/commerce/exchange/coins</code>).</td>
+						</tr>
+						<tr>
+							<td><span class="quantity">quantity</span></td>
+							<td class="type">int</td>
+							<td>The number of coins or gems you get for the specified quantity.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-commerce-prices" href="#v2-commerce-prices">commerce/prices</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-commerce-prices-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns a list of accepted resources for the gem exchange.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/commerce/prices</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Listings to request via its ID. Seperate multiple with a comma.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The item id.</td>
+						</tr>
+						<tr>
+							<td><span class="buys">buys</span></td>
+							<td class="type">object</td>
+							<td>Buy information.</td>
+						</tr>
+						<tr>
+							<td><span class="sells">sells</span></td>
+							<td class="type">object</td>
+							<td>Sell information.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-build" href="#v2-build">build</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-build-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns the current build id of the game. This can be used, for example, to register when event timers reset due to server restarts.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/build</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr><td colspan="6">None</td></tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The build id.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-colors" href="#v2-colors">colors</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-colors-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns all dye colors in the game, including localized names and their color component information.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/colors</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Dyes to request via its ID. Seperate multiple with a comma.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">lang</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">The language to query the names for.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The color id.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The color name.</td>
+						</tr>
+						<tr>
+							<td><span class="base_rgb">base_rgb</span></td>
+							<td class="type">array</td>
+							<td>The base RGB values.</td>
+						</tr>
+						<tr>
+							<td><span class="cloth">cloth</span></td>
+							<td class="type">object</td>
+							<td>Detailed information on its appearance when applied on cloth armor.</td>
+						</tr>
+						<tr>
+							<td><span class="leather">leather</span></td>
+							<td class="type">object</td>
+							<td>Detailed information on its appearance when applied on leather armor.</td>
+						</tr>
+						<tr>
+							<td><span class="metal">metal</span></td>
+							<td class="type">object</td>
+							<td>Detailed information on its appearance when applied on metal armor.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-files" href="#v2-files">files</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-files-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns commonly requested in-game assets that may be used to enhance API-derived applications.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/files</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Dyes to request via its ID. Seperate multiple with a comma.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">string</td>
+							<td>The file identifier.</td>
+						</tr>
+						<tr>
+							<td><span class="icon">icon</span></td>
+							<td class="type">string</td>
+							<td>The URL to the image.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-quaggans" href="#v2-quaggans">quaggans</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-quaggans-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns quaggan images.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/quaggans</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">The quaggan identifier.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The quaggan identifier.</td>
+						</tr>
+						<tr>
+							<td><span class="url">url</span></td>
+							<td class="type">string</td>
+							<td>The URL to the quaggan image.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+
+				<h1>
+					<a class="link" id="v2-worlds" href="#v2-worlds">worlds</a>
+					<span class="bubble v2">v2</span>
+				</h1>
+				<div id="v2-worlds-data" class="api-box">
+					<a class="try-out">Use this endpoint</a>
+					<div class="box-body">
+						<p>This resource returns information about the available worlds, or servers.</p>
+						<pre class="api-url"><span class="base-url">https://api.guildwars2.com/v2/worlds</span><span class="prependix"></span><span class="query-url">/</span></pre>
+						
+						<pre class="api-call-result"></pre>
+					</div>
+					<div class="box-heading">Request</div>
+						<table class="request-table">
+							<thead>
+								<tr>
+									<th>Method</th>
+									<th>Name</th>
+									<th class="sandbox-only">Value</th>
+									<th>Type</th>
+									<th>Required</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">ids</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">Worlds to request via its ID. Seperate multiple with a comma.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">lang</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">string</td>
+								<td class="required">No</td>
+								<td class="description">The language to query the names for.</td>
+							</tr>
+							<tr>
+								<td><span class="method get">get</span></td>
+								<td class="name">page</td>
+								<th class="sandbox-only value"><input class="sandbox-input" name="page"></th>
+								<td class="type">int</td>
+								<td class="required">No</td>
+								<td class="description">Pagination.</td>
+							</tr>
+							</tbody>
+						</table>
+						<div class="box-heading">Response</div>
+						<table class="response-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Type</th>
+									<th>Description</th>
+								</tr>
+							</thead>
+							<tbody>
+								
+						<tr>
+							<td><span class="id">id</span></td>
+							<td class="type">int</td>
+							<td>The world id.</td>
+						</tr>
+						<tr>
+							<td><span class="name">name</span></td>
+							<td class="type">string</td>
+							<td>The world name.</td>
+						</tr>
+							</tbody>
+						</table>
+					</div>
+			</div>
+		</div>
+	</body>
+</html>
