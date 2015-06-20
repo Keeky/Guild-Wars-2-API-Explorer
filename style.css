@@ -46,19 +46,19 @@ html * {
 
 @keyframes beat {
   0% {
-    transform: scale(1); }
+    transform: scale(1.2); }
 
   70% {
-    transform: scale(1.2); }
-
-  80% {
     transform: scale(1); }
 
-  90% {
+  80% {
     transform: scale(1.2); }
 
+  90% {
+    transform: scale(1); }
+
   100% {
-    transform: scale(1); } }
+    transform: scale(1.2); } }
 .smalltext {
   font-size: 12px;
   color: #999; }
