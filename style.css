@@ -272,7 +272,8 @@ html * {
         border-radius: 1px;
         padding: 1px 4px;
         font-family: 'Roboto Mono', monospace;
-        font-size: 14px; }
+        font-size: 14px;
+        white-space: nowrap; }
         #content #content-inner .api-box code.highlight {
           background-color: #9FD7F9;
           border-color: #8CBEDB;
