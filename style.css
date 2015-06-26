@@ -1,3 +1,5 @@
+/* VARIABLES */
+/* MIXINS */
 #sidebar h1, #sidebar #api-list a, #sidebar #api-list a:hover {
   -webkit-text-shadow: 1px 1px black;
   -moz-text-shadow: 1px 1px black;
@@ -23,6 +25,7 @@
   -o-box-shadow: -1px 2px 0 #d4d4d4;
   box-shadow: -1px 2px 0 #d4d4d4; }
 
+/* MAIN CSS */
 *, *:before, *:after {
   -webkit-box-sizing: border-box;
   -moz-box-sizing: border-box;
@@ -63,6 +66,29 @@ html * {
   font-size: 12px;
   color: #999; }
 
+#mobile-nav-toggle {
+  background: #333333 url("menu-32.png") no-repeat scroll center center;
+  color: #ffffff;
+  cursor: pointer;
+  display: none;
+  height: 32px;
+  left: 10px;
+  position: fixed;
+  text-align: center;
+  top: 10px;
+  transition: all 500ms ease 0s;
+  width: 32px;
+  z-index: 999; }
+  @media only screen and (max-width: 700px) {
+    #mobile-nav-toggle {
+      display: block; } }
+
+.nav-active #mobile-nav-toggle {
+  background-color: #df2d00; }
+@media only screen and (max-width: 700px) {
+  .nav-active #sidebar {
+    left: 0%; } }
+
 #sidebar {
   width: 300px;
   position: fixed;
@@ -71,7 +97,16 @@ html * {
   left: 0;
   background-color: #383232;
   height: 100%;
-  overflow-y: auto; }
+  overflow-y: auto;
+  z-index: 99;
+  -webkit-transition: all 500ms ease;
+  -moz-transition: all 500ms ease;
+  -ms-transition: all 500ms ease;
+  -o-transition: all 500ms ease;
+  transition: all 500ms ease; }
+  @media only screen and (max-width: 700px) {
+    #sidebar {
+      left: -100%; } }
   #sidebar h1 {
     color: #df2d00;
     font-size: 28px;
@@ -91,11 +126,17 @@ html * {
 
 #content {
   padding: 20px 20px 20px 320px; }
+  @media only screen and (max-width: 700px) {
+    #content {
+      padding: 20px; } }
   #content #content-inner {
     padding: 40px 40px 220px;
     max-width: 960px;
     margin: 0 auto;
     background: url("quaggan.png") no-repeat center bottom; }
+    @media only screen and (max-width: 700px) {
+      #content #content-inner {
+        padding: 40px 0 220px; } }
     #content #content-inner .label {
       color: #555;
       padding-bottom: 9px;
@@ -126,13 +167,15 @@ html * {
       border-bottom: 1px solid #CCC;
       margin: 80px 0 20px;
       padding-bottom: 9px;
-      display: block; }
+      display: block;
+      line-height: 40px; }
       #content #content-inner h1 a:hover {
         text-decoration: underline;
         color: #df2d00; }
       #content #content-inner h1 .bubble {
         position: relative;
-        bottom: 5px; }
+        bottom: 5px;
+        white-space: nowrap; }
     #content #content-inner .bubble {
       font-size: 14px;
       color: #FFF;
@@ -200,6 +243,9 @@ html * {
         transition: opacity 100ms linear;
         padding: 8px 12px;
         color: #FFF; }
+        @media only screen and (max-width: 700px) {
+          #content #content-inner .api-box .try-out {
+            opacity: 1; } }
         #content #content-inner .api-box .try-out:hover {
           background-color: #16a085;
           text-decoration: none;
@@ -284,6 +330,10 @@ html * {
         border-top: 1px solid #DDD;
         border-bottom: 1px solid #DDD;
         font-weight: 700; }
+        @media only screen and (max-width: 700px) {
+          #content #content-inner .api-box .box-heading {
+            background-color: #333;
+            color: #FFF; } }
       #content #content-inner .api-box .box-body {
         margin-top: 10px;
         padding: 15px 15px 30px; }
@@ -293,6 +343,9 @@ html * {
           border-bottom: 1px solid #DDD; }
           #content #content-inner .api-box table tr:nth-child(2n+2) {
             background-color: #F5F5F5; }
+            @media only screen and (max-width: 700px) {
+              #content #content-inner .api-box table tr:nth-child(2n+2) {
+                background-color: #EEE; } }
         #content #content-inner .api-box table tbody tr:last-child {
           border-bottom: none; }
         #content #content-inner .api-box table td, #content #content-inner .api-box table th {
@@ -303,4 +356,31 @@ html * {
             border-right: none; }
         #content #content-inner .api-box table th {
           text-align: left;
-          font-weight: 600; }
+          font-weight: 600;
+          display: none; }
+        @media only screen and (max-width: 700px) {
+          #content #content-inner .api-box table td {
+            display: block;
+            border-right: none;
+            border-bottom: 1px solid #DDD; }
+            #content #content-inner .api-box table td:before {
+              font-weight: 500;
+              width: 100px;
+              display: inline-block; }
+            #content #content-inner .api-box table td.method:before {
+              content: "Method: "; }
+            #content #content-inner .api-box table td.name:before {
+              content: "Name: "; }
+            #content #content-inner .api-box table td.value:before {
+              content: "Value: "; }
+            #content #content-inner .api-box table td.type:before {
+              content: "Type: ";
+              font-style: normal; }
+            #content #content-inner .api-box table td.required:before {
+              content: "Required: "; }
+            #content #content-inner .api-box table td.description:before {
+              content: "Description: "; }
+            #content #content-inner .api-box table td.hidden {
+              display: none; }
+            #content #content-inner .api-box table td:last-child {
+              border-bottom: none; } }
