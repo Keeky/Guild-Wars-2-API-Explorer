@@ -1,5 +1,5 @@
 # Guild-Wars-2-API-Explorer
-[http://keeky.github.io/Guild-Wars-2-API-Explorer/](http://keeky.github.io/Guild-Wars-2-API-Explorer/)
+[https://keeky.github.io/Guild-Wars-2-API-Explorer/](https://keeky.github.io/Guild-Wars-2-API-Explorer/)
 
 Small project to get a nice looking and interactive documentation going. Ideas, contributions, corrections etc are greatly appreciated. You can contact me directly on GitHub or ingame as Keeky.4102
 
