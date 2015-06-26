@@ -209,7 +209,7 @@
 			"name": "recipes",
 			"bubbles": ["v2"],
 			"description": "This resource returns information about recipes that were discovered by players in the game. Note that the response varies depending on the type of item you're requesting.",
-			"baseUrl": "https://api.guildwars2.com/v2/items",
+			"baseUrl": "https://api.guildwars2.com/v2/recipes",
 			"requestData": [
 				["Language"],
 				["IDs"],
