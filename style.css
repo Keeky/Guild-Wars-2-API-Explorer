@@ -137,6 +137,16 @@ html * {
     @media only screen and (max-width: 700px) {
       #content #content-inner {
         padding: 40px 0 220px; } }
+    #content #content-inner #create-new-key {
+      color: #df2d00;
+      padding: 4px 6px;
+      font-size: 18px;
+      font-weight: 400;
+      display: inline-block;
+      margin-left: 10px; }
+      #content #content-inner #create-new-key:hover {
+        color: #FFF;
+        background-color: #df2d00; }
     #content #content-inner .label {
       color: #555;
       padding-bottom: 9px;

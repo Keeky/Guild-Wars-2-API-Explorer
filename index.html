@@ -295,13 +295,13 @@
 		</div>
 		<div id="content">
 			<div id="content-inner">
-				<div class="label">Your API Key</div>
+				<div class="label">Your API Key <a target="_blank" id="create-new-key" href="https://account.guildwars2.com/account/api-keys/create">+</a></div>
 				<div id="api-key-form-wrapper">
 					<input id="api-key" name="api-key" type="text" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXXXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX">
 				</div>
 				<div id="first-box" class="api-box">
 					<p>The GuildWars 2 API is accessed by making requests to <code class="highlight">https://api.guildwars2.com</code> with the following URI format:<br>
-					<code class="highlight">https://api.guildwars2.com/&lt;version&gt;/&lt;endpoint&gt;</code><br><br>This site is kind of both, a documentation and a sandbox. You can  play around a bit by clicking the "Use this endpoint" button on every card on the top right. Some input fields will appear in the request table where possible.<br><br>If you want to use the authenticated APIs you can enter an API key in the box above. The key will only be saved in your Browser. Data of this site is available on <a target="_blank" href="https://github.com/Keeky/Guild-Wars-2-API-Explorer">GitHub</a>.<br>Made with <span id="heart">&#10084;</span> by Keeky.4102</p>
+					<code class="highlight">https://api.guildwars2.com/&lt;version&gt;/&lt;endpoint&gt;</code><br><br>This site is kind of both, a documentation and a sandbox. You can  play around a bit by clicking the "Use this endpoint" button on every card on the top right. Some input fields will appear in the request table where possible.<br><br>If you want to use the authenticated APIs you can enter an <a target="_blank" href="https://account.guildwars2.com/account/api-keys">API key</a> in the box above. The key will only be saved in your Browser. Data of this site is available on <a target="_blank" href="https://github.com/Keeky/Guild-Wars-2-API-Explorer">GitHub</a>.<br><br>Made with <span id="heart">&#10084;</span> by Keeky.4102</p>
 				</div>
 						
 					<h1>
@@ -363,12 +363,12 @@
 							</tr>
 							<tr>
 								<td class="name"><span class="world">world</span></td>
-								<td class="type">string</td>
+								<td class="type">int</td>
 								<td class="description">The id of the home world the account is assigned to. Can be fetched by requesting /v2/worlds.</td>
 							</tr>
 							<tr>
 								<td class="name"><span class="guilds">guilds</span></td>
-								<td class="type">string</td>
+								<td class="type">array</td>
 								<td class="description">A list of guilds assigned to the given account.</td>
 							</tr>
 							<tr>
