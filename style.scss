@@ -1,3 +1,15 @@
+/* VARIABLES */
+
+
+$red: #DF2D00;
+$bg: #383232;
+$bg-light: #443D3D;
+
+
+/* MIXINS */
+
+
+//@include vendorize(css, stuff);
 $vendors: 'webkit', 'moz', 'ms', 'o';
 @mixin vendorize($property, $value, $noplain: false, $vendors: $vendors, $prefix:'') {
 	@each $vendor in $vendors {
@@ -9,25 +21,59 @@ $vendors: 'webkit', 'moz', 'ms', 'o';
 	}
 }
 
-$red: #DF2D00;
-$bg: #383232;
-$bg-light: #443D3D;
+//@include desktop { css: stuff; }
+@mixin desktop {
+	@media only screen and (min-width: 900px) {
+		@content;
+	}
+}
 
+@mixin tablet {
+	@media only screen and (max-width: 900px) {
+		@content;
+	}
+}
+
+@mixin mobile {
+	@media only screen and (max-width: 700px) {
+		@content;
+	}
+}
+
+//@extend %clearfix
+%clearfix {
+  *zoom: 1;
+  &:before, &:after {
+	content: " ";
+	display: table;
+  }
+  &:after {
+	clear: both;
+  }
+}
+
+//@extend %nav-text
 %nav-text {
 	@include vendorize(text-shadow, 1px 1px #000000);
 	color: #FFF;
 }
 
+//@extend %method-style
 %method-style {
 	font-weight: 500;
 }
 
+//@extend %card
 %card {
 	border: 1px solid #DDD;
 	background-color: #FFF;
 	@include vendorize(border-radius, 2px);
 	@include vendorize(box-shadow, -1px 2px 0 #d4d4d4);
 }
+
+
+/* MAIN CSS */
+
 
 *, *:before, *:after {
 	@include vendorize(box-sizing, border-box);
@@ -63,6 +109,37 @@ html * {
 	color: #999;
 }
 
+#mobile-nav-toggle {
+	background: #333333 url("menu-32.png") no-repeat scroll center center;
+	color: #ffffff;
+	cursor: pointer;
+	display: none;
+	height: 32px;
+	left: 10px;
+	position: fixed;
+	text-align: center;
+	top: 10px;
+	transition: all 500ms ease 0s;
+	width: 32px;
+	z-index: 999;
+
+	@include mobile {
+		display: block;
+	}
+}
+
+.nav-active {
+	#mobile-nav-toggle {
+		background-color: $red;
+	}
+
+	#sidebar {
+		@include mobile {
+			left: 0%;
+		}
+	}
+}
+
 #sidebar {
 	width: 300px;
 	position: fixed;
@@ -72,6 +149,11 @@ html * {
 	background-color: $bg;
 	height: 100%;
 	overflow-y: auto;
+	z-index: 99;
+	@include vendorize(transition, all 500ms ease);
+	@include mobile {
+		left: -100%;
+	}
 
 	h1 {
 		color: $red;
@@ -109,12 +191,18 @@ html * {
 
 #content {
 	padding: 20px 20px 20px 320px;
+	@include mobile {
+		padding: 20px;
+	}
 
 	#content-inner {
 		padding: 40px 40px 220px;
 		max-width: 960px;
 		margin: 0 auto;
 		background: url("quaggan.png") no-repeat center bottom;
+		@include mobile {
+			padding: 40px 0 220px;
+		}
 
 		.label {
 			color: #555;
@@ -163,6 +251,7 @@ html * {
 			margin: 80px 0 20px;
 			padding-bottom: 9px;
 			display: block;
+			line-height: 40px;
 
 			a:hover {
 				text-decoration: underline;
@@ -172,6 +261,7 @@ html * {
 			.bubble {
 				position: relative;
 				bottom: 5px;
+				white-space: nowrap;
 			}
 		}
 
@@ -281,6 +371,9 @@ html * {
 				@include vendorize(transition, opacity 100ms linear);
 				padding: 8px 12px;
 				color: #FFF;
+				@include mobile {
+					opacity: 1;
+				}
 
 				&:hover {
 					background-color: #16a085;
@@ -399,6 +492,11 @@ html * {
 				border-top: 1px solid #DDD;
 				border-bottom: 1px solid #DDD;
 				font-weight: 700;
+
+				@include mobile {
+					background-color: #333;
+					color: #FFF;
+				}
 			}
 
 			.box-body {
@@ -414,6 +512,10 @@ html * {
 
 					&:nth-child(2n+2) {
 						background-color: #F5F5F5;
+
+						@include mobile {
+							background-color: #EEE;
+						}
 					}
 				}
 
@@ -434,6 +536,33 @@ html * {
 				th {
 					text-align: left;
 					font-weight: 600;
+					display: none;
+				}
+
+				td {
+					@include mobile {
+						display: block;
+						border-right: none;
+						border-bottom: 1px solid #DDD;
+
+						&:before {
+							font-weight: 500;
+							width: 100px;
+							display: inline-block;
+						}
+						&.method:before { content: "Method: "; }
+						&.name:before { content: "Name: "; }
+						&.value:before { content: "Value: "; }
+						&.type:before { content: "Type: "; font-style: normal; }
+						&.required:before { content: "Required: "; }
+						&.description:before { content: "Description: "; }
+
+						&.hidden { display: none; }
+
+						&:last-child {
+							border-bottom: none;
+						}
+					}
 				}
 			}
 		}
